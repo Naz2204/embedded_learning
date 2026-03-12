@@ -4,8 +4,8 @@
 #include <uri/UriBraces.h>
 #include "DHT.h"
 
-#define WIFI_SSID "ZIROCHKA"
-#define WIFI_PASSWORD "1911DIMA"
+#define WIFI_SSID "your_wifi"
+#define WIFI_PASSWORD "your_pass"
 #define WIFI_CHANNEL 6
 
 #define MOTOR_CON1 4
