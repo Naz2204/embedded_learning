@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ESP32 Joystick Monitor</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align: center; background: #1a1a1a; color: white; }
+        .container { margin-top: 50px; }
+        
+        /* Joystick Visualizer */
+        #joystick-ui { background: #333; border-radius: 50%; border: 4px solid #555; display: inline-block; position: relative; width: 200px; height: 200px; }
+        #knob { width: 50px; height: 50px; background: #007bff; border-radius: 50%; position: absolute; left: 75px; top: 75px; transition: transform 0.1s ease-out; box-shadow: 0 0 15px rgba(0, 123, 255, 0.8); }
+        
+        .stats { margin-top: 20px; font-size: 1.5rem; }
+        .status { font-size: 0.9rem; color: #888; margin-top: 10px; }
+        .connected { color: #28a745; }
+        .disconnected { color: #dc3545; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>ESP32 Joystick Feed</h1>
+        
+        <div id="joystick-ui">
+            <div id="knob"></div>
+        </div>
+
+        <div class="stats">
+            X: <span id="valX">0</span> | Y: <span id="valY">0</span>
+        </div>
+        <!-- <div id="valZ"></div> -->
+        <div id="status" class="status disconnected">Connecting to WebSocket...</div>
+    </div>
+
+    <script>
+        // --- CONFIGURATION ---
+        const ESP32_IP = "192.168.0.117"; // Replace with your ESP32 IP address
+        const gateway = `ws://${ESP32_IP}/ws`;
+        
+        let socket;
+        const knob = document.getElementById('knob');
+        const statusLabel = document.getElementById('status');
+        const valX = document.getElementById('valX');
+        const valY = document.getElementById('valY');
+        const valZ = document.getElementById('valZ');
+
+        function initWebSocket() {
+            socket = new WebSocket(gateway);
+
+            socket.onopen = () => {
+                statusLabel.innerText = "Connected to ESP32";
+                statusLabel.className = "status connected";
+            };
+
+            socket.onclose = () => {
+                statusLabel.innerText = "Disconnected. Retrying...";
+                statusLabel.className = "status disconnected";
+                setTimeout(initWebSocket, 2000);
+            };
+
+            socket.onmessage = (event) => {
+                try {
+                    // Expecting data like: {"x": 45, "y": -10}
+                    // Assuming range is -100 to 100
+                    const data = JSON.parse(event.data);
+                    
+                    const x = data.x || 0;
+                    const y = data.y || 0;
+                    const z = data.z || 0;
+
+                    updateUI(x, y, z);
+                } catch (e) {
+                    console.error("Error parsing WebSocket data:", e);
+                }
+            };
+        }
+
+        function updateUI(x, y, z) {
+            valX.innerText = x;
+            valY.innerText = y;
+            // valZ.innerText = "Button pressed";
+            // Map values (-100 to 100) to pixel movement (max 75px radius)
+            // x/100 * 75
+            const moveX = (x / 100) * 75;
+            const moveY = (y / 100) * 75 * -1; // Invert Y because CSS 'top' increases downwards
+
+            knob.style.transform = `translate(${moveX}px, ${moveY}px)`;
+        }
+
+        window.onload = initWebSocket;
+    </script>
+</body>
+</html>
